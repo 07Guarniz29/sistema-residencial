@@ -636,50 +636,66 @@
         }
 
         async function consultarAPI(tipo) {
-            const dni = document.getElementById(`${tipo}-documento`).value.trim();
-            if (dni.length !== 8) {
-                alert("Ingrese un DNI válido de 8 dígitos.");
-                return;
-            }
-            try {
-                const response = await fetch(`https://apiperu.dev/api/dni/${dni}`, {
-                    headers: { 'Authorization': 'Bearer TU_TOKEN_DE_APIPERU' }
-                });
-                const res = await response.json();
-                if (res.success && res.data) {
-                    const nombreCompleto = `${res.data.nombres} ${res.data.apellido_paterno} ${res.data.apellido_materno}`;
-                    document.getElementById(`${tipo}-nombre`).value = nombreCompleto;
-                } else {
-                    alert("No se encontró el DNI en la API.");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Error al consultar la API de DNI.");
-            }
+    const dni = document.getElementById(`${tipo}-documento`).value.trim();
+    const inputNombre = document.getElementById(`${tipo}-nombre`);
+    
+    if (dni.length !== 8) {
+        alert("Ingrese un DNI válido de 8 dígitos.");
+        return;
+    }
+    try {
+        const response = await fetch('https://api.apiperu.dev/dni', {
+            method: 'POST',
+            headers: { 
+                'Authorization': 'Bearer 1ab915897351601ab9267d07c09450fe00958260b154459ff5e8e7e43d08d3e7',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ dni: dni })
+        });
+        const res = await response.json();
+        if (res.success && res.data) {
+            const nombreCompleto = `${res.data.nombres} ${res.data.apellido_paterno} ${res.data.apellido_materno}`;
+            inputNombre.value = nombreCompleto;
+        } else {
+            alert(res.message || "No se encontró el DNI en la API.");
         }
+    } catch (e) {
+        console.error(e);
+        alert("Error al consultar la API de DNI.");
+    }
+}
 
-        async function consultarAPITrabajador() {
-            const dni = document.getElementById('tr-documento').value.trim();
-            if (dni.length !== 8) {
-                alert("Ingrese un DNI válido de 8 dígitos.");
-                return;
-            }
-            try {
-                const response = await fetch(`https://apiperu.dev/api/dni/${dni}`, {
-                    headers: { 'Authorization': 'Bearer TU_TOKEN_DE_APIPERU' }
-                });
-                const res = await response.json();
-                if (res.success && res.data) {
-                    const nombreCompleto = `${res.data.nombres} ${res.data.apellido_paterno} ${res.data.apellido_materno}`;
-                    document.getElementById('tr-nombre').value = nombreCompleto;
-                } else {
-                    alert("No se encontró el DNI.");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Error al consultar la API.");
-            }
+async function consultarAPITrabajador() {
+    const dni = document.getElementById('tr-documento').value.trim();
+    const inputNombre = document.getElementById('tr-nombre');
+    
+    if (dni.length !== 8) {
+        alert("Ingrese un DNI válido de 8 dígitos.");
+        return;
+    }
+    try {
+        const response = await fetch('https://api.apiperu.dev/dni', {
+            method: 'POST',
+            headers: { 
+                'Authorization': 'Bearer 1ab915897351601ab9267d07c09450fe00958260b154459ff5e8e7e43d08d3e7',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ dni: dni })
+        });
+        const res = await response.json();
+        if (res.success && res.data) {
+            const nombreCompleto = `${res.data.nombres} ${res.data.apellido_paterno} ${res.data.apellido_materno}`;
+            inputNombre.value = nombreCompleto;
+        } else {
+            alert(res.message || "No se encontró el DNI.");
         }
+    } catch (e) {
+        console.error(e);
+        alert("Error al consultar la API.");
+    }
+}
 
         // REGISTRAR ASISTENCIA
         async function registrarAsistencia(event) {
