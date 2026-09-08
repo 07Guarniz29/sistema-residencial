@@ -352,7 +352,7 @@
         </div>
     </main>
 
-    <!-- MODAL DE PIN -->
+    <!-- MODAL DE PIN PARA PESTAÑAS PROTEGIDAS -->
     <div id="modalPin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 max-w-xs w-full shadow-xl space-y-4 text-center">
             <h3 class="text-md font-bold text-slate-800">Área Restringida 🔒</h3>
@@ -362,6 +362,20 @@
                 <button type="button" onclick="cerrarModalPin()" class="flex-1 bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-300 transition">Cancelar</button>
                 <button type="button" onclick="validarPinAdmin()" class="flex-1 bg-blue-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-blue-700 transition">Ingresar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE BLOQUEO DE DISPOSITIVO EXTERNO -->
+    <div id="modalDispositivoBloqueado" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">🔒</div>
+            <h3 class="text-lg font-bold text-slate-800">Acceso Restringido</h3>
+            <p class="text-xs text-gray-600">Este dispositivo no está autorizado para registrar operaciones. Ingrese el PIN de Administración para registrar este equipo:</p>
+            <input type="password" id="inputPinAutorizacion" class="w-full p-3 text-center tracking-widest text-lg border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="••••" maxlength="4">
+            <button type="button" onclick="autorizarEsteDispositivo()" class="w-full bg-slate-900 text-white font-semibold py-3 rounded-xl hover:bg-slate-800 transition shadow-md">
+                Autorizar Dispositivo
+            </button>
+            <p id="errorPinAuth" class="text-xs text-red-500 hidden font-semibold">PIN incorrecto.</p>
         </div>
     </div>
 
@@ -379,6 +393,29 @@
         const PIN_ADMIN = "2901";
         let sesionAdminActiva = false;
         let tabPendienteDestino = '';
+
+        // Bloqueo de dispositivos no autorizados al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            const dispositivoRegistrado = localStorage.getItem('rcasas_dispositivo_autorizado');
+            if (dispositivoRegistrado !== 'true') {
+                document.getElementById('modalDispositivoBloqueado').classList.remove('hidden');
+            }
+        });
+
+        function autorizarEsteDispositivo() {
+            const pinIngresado = document.getElementById('inputPinAutorizacion').value.trim();
+            const errorMsg = document.getElementById('errorPinAuth');
+
+            if (pinIngresado === PIN_ADMIN) {
+                localStorage.setItem('rcasas_dispositivo_autorizado', 'true');
+                document.getElementById('modalDispositivoBloqueado').classList.add('hidden');
+                alert("¡Dispositivo autorizado correctamente!");
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('inputPinAutorizacion').value = '';
+                document.getElementById('inputPinAutorizacion').focus();
+            }
+        }
 
         async function cargarDepartamentos() {
             const { data, error } = await _supabase.from('Departamentos').select('numero');
@@ -809,7 +846,6 @@
             if(!tbody) return;
             tbody.innerHTML = `<tr><td colspan="2" class="p-4 text-center text-gray-500">Cargando registros...</td></tr>`;
 
-            // Como Asistencia, Visitas y Paquetes usan la columna 'fecha', la definimos directamente
             let columnaOrden = 'fecha';
             let query = _supabase.from(tablaSeleccionada).select('*').order(columnaOrden, { ascending: false });
 
