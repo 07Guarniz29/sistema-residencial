@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RCasas - Control Multi-Edificio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cliente de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Encabezado y Pestañas -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-md mx-auto px-4 pt-4 text-center">
+            <h1 class="text-lg font-bold text-slate-800" id="titulo-sistema">RCasas - Asistencia</h1>
+        </div>
+        <div class="flex border-b mt-3 max-w-md mx-auto overflow-x-auto">
+            <button onclick="cambiarTab('asistencia')" id="btn-asistencia" class="flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition">Asistencia</button>
+            <button onclick="cambiarTab('accesos')" id="btn-accesos" class="flex-1 py-3 text-xs font-semibold text-gray-500 hover:text-slate-800 transition">Accesos</button>
+            <button onclick="cambiarTab('paquetes')" id="btn-paquetes" class="flex-1 py-3 text-xs font-semibold text-gray-500 hover:text-slate-800 transition">Paquetes</button>
+            <button onclick="cambiarTab('trabajadores')" id="btn-trabajadores" class="flex-1 py-3 text-xs font-semibold text-gray-500 hover:text-slate-800 transition">Personal 🔒</button>
+            <button onclick="cambiarTab('historial')" id="btn-historial" class="flex-1 py-3 text-xs font-semibold text-gray-500 hover:text-slate-800 transition">Historial 🔒</button>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="p-4 max-w-md mx-auto w-full flex-grow">
+        <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+            
+            <!-- SECCIÓN 1: ASISTENCIA -->
+            <form id="formAsistencia" class="space-y-3">
+                <h2 class="text-md font-bold text-slate-700 border-b pb-2">Control de Asistencia del Personal</h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Acción</label>
+                    <select id="asis-accion" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="INGRESO">INGRESO</option>
+                        <option value="SALIDA">SALIDA</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Seleccionar Trabajador</label>
+                    <select id="asis-trabajador-select" onchange="completarDatosAsistencia()" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Cargando personal...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">N° de Documento / Pasaporte</label>
+                    <input type="text" id="asis-documento" required readonly class="w-full mt-1 p-2 border rounded-lg bg-gray-50 text-gray-600 outline-none" placeholder="DNI del trabajador">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Nombres y Apellidos</label>
+                    <input type="text" id="asis-nombre" required readonly class="w-full mt-1 p-2 border rounded-lg bg-gray-50 text-gray-600 outline-none" placeholder="Nombres completos">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Cargo / Área</label>
+                    <input type="text" id="asis-cargo" required readonly class="w-full mt-1 p-2 border rounded-lg bg-gray-50 text-gray-600 outline-none" placeholder="Cargo">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Turno</label>
+                    <select id="asis-turno" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="DIA">Día</option>
+                        <option value="NOCHE">Noche</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-slate-800 text-white font-semibold p-3 rounded-lg hover:bg-slate-900 transition shadow-md mt-4">
+                    Registrar Asistencia
+                </button>
+            </form>
+
+            <!-- SECCIÓN 2: ACCESOS -->
+            <div id="formAccesos" class="space-y-3 hidden">
+                <h2 class="text-md font-bold text-slate-700 border-b pb-2">Registro de Accesos</h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Acción</label>
+                    <select id="acc-accion" onchange="alternarModoAcceso()" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="INGRESO">INGRESO</option>
+                        <option value="SALIDA">SALIDA</option>
+                    </select>
+                </div>
+
+                <!-- FORMULARIO DE INGRESO -->
+                <form id="subFormIngreso" onsubmit="registrarIngresoAcceso(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Tipo de Persona</label>
+                        <select id="acc-tipoPersona" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Visita">Visita</option>
+                            <option value="Proveedor">Proveedor</option>
+                            <option value="Propietario">Propietario</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">N° de Documento / Pasaporte</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="acc-documento" required maxlength="8" class="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="DNI de 8 dígitos">
+                            <button type="button" onclick="consultarAPI('acc')" class="bg-blue-600 text-white px-4 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">Buscar</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombres y Apellidos</label>
+                        <input type="text" id="acc-nombre" required class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombres completos">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Departamento / Área Destino</label>
+                        <select id="acc-destino" required class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando departamentos...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-slate-800 text-white font-semibold p-3 rounded-lg hover:bg-slate-900 transition shadow-md mt-4">
+                        Registrar Ingreso
+                    </button>
+                </form>
+
+                <!-- SECCIÓN DE SALIDA -->
+                <div id="subFormSalida" class="space-y-3 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Personas actualmente en el edificio</label>
+                        <select id="selectSalidaActiva" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando personas...</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="registrarSalidaSeleccionada()" class="w-full bg-red-600 text-white font-semibold p-3 rounded-lg hover:bg-red-700 transition shadow-md mt-4">
+                        Marcar Salida de la Persona
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3: PAQUETES -->
+            <div id="formPaquetes" class="space-y-3 hidden">
+                <h2 class="text-md font-bold text-slate-700 border-b pb-2">Gestión de Paquetes</h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Acción de Paquete</label>
+                    <select id="paq-accion-modo" onchange="alternarModoPaquete()" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="REGISTRO">Registrar Recepción</option>
+                        <option value="ENTREGA">Entregar al Residente</option>
+                    </select>
+                </div>
+
+                <!-- SUBFORMULARIO 1: REGISTRAR LLEGADA DE PAQUETE -->
+                <form id="subFormRegPaquete" onsubmit="registrarPaquete(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">N° de Departamento</label>
+                        <select id="paq-depto" required class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando departamentos...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombre del Residente (Destinatario)</label>
+                        <input type="text" id="paq-destinatario" required class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="A quién va dirigido">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">¿Quién lo deja / Repartidor?</label>
+                        <input type="text" id="paq-repartidor" required class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombre del motorizado">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Empresa de Courier / Tienda</label>
+                        <select id="paq-courier" onchange="verificarCourierOtro()" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Mercado Libre">Mercado Libre</option>
+                            <option value="Olva Courier">Olva Courier</option>
+                            <option value="Falabella">Falabella</option>
+                            <option value="Oechsle">Oechsle</option>
+                            <option value="Rappi">Rappi</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="AliExpress">AliExpress</option>
+                            <option value="Otro">Otro (Especificar)</option>
+                        </select>
+                    </div>
+
+                    <div id="contenedor-otro-courier" class="hidden">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Especifique el nombre de la empresa</label>
+                        <input type="text" id="paq-courier-otro" class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombre de la empresa">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Descripción del Paquete</label>
+                        <input type="text" id="paq-descripcion" required class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej. Caja mediana / Menú / Sobre">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Recibido por (Trabajador)</label>
+                        <select id="paq-receptor" required class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando trabajadores...</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-slate-800 text-white font-semibold p-3 rounded-lg hover:bg-slate-900 transition shadow-md mt-2">
+                        Registrar Recepción de Paquete
+                    </button>
+                </form>
+
+                <!-- SUBFORMULARIO 2: ENTREGAR PAQUETE AL RESIDENTE -->
+                <div id="subFormEntregarPaquete" class="space-y-3 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Paquetes pendientes de entrega</label>
+                        <select id="selectPaquetePendiente" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando paquetes pendientes...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Trabajador que entrega el paquete</label>
+                        <select id="paq-trabajador-entrega" required class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Cargando trabajadores...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">¿Quién retira / recibe el paquete? (Residente)</label>
+                        <input type="text" id="paq-quien-retira" class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombre del residente que se lleva el paquete">
+                    </div>
+
+                    <button type="button" onclick="entregarPaqueteSeleccionado()" class="w-full bg-emerald-600 text-white font-semibold p-3 rounded-lg hover:bg-emerald-700 transition shadow-md mt-4">
+                        Confirmar Entrega de Paquete
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 4: GESTIÓN DE PERSONAL (PROTEGIDO) -->
+            <div id="seccionTrabajadores" class="space-y-3 hidden">
+                <h2 class="text-md font-bold text-slate-700 border-b pb-2">Registro de Nuevo Trabajador 🔒</h2>
+                
+                <form id="formNuevoTrabajador" onsubmit="registrarNuevoTrabajador(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">N° de DNI</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="tr-documento" required maxlength="8" class="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="DNI de 8 dígitos">
+                            <button type="button" onclick="consultarAPITrabajador()" class="bg-blue-600 text-white px-4 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">Buscar</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombres y Apellidos</label>
+                        <input type="text" id="tr-nombre" required class="w-full mt-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombres completos">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Cargo / Área y Turno</label>
+                        <select id="tr-cargo" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                            <optgroup label="Conserjería">
+                                <option value="Conserje - Turno Día">Conserje - Turno Día</option>
+                                <option value="Conserje - Turno Noche">Conserje - Turno Noche</option>
+                            </optgroup>
+                            <optgroup label="Limpieza">
+                                <option value="Operario de Limpieza - Turno Día">Operario de Limpieza - Turno Día</option>
+                                <option value="Operario de Limpieza - Turno Noche">Operario de Limpieza - Turno Noche</option>
+                            </optgroup>
+                            <optgroup label="Personal de Apoyo / Relevo">
+                                <option value="Relevo / Apoyo - Conserjería">Relevo / Apoyo - Conserjería</option>
+                                <option value="Relevo / Apoyo - Limpieza">Relevo / Apoyo - Limpieza</option>
+                                <option value="Supervisor / Volante General">Supervisor / Volante General</option>
+                            </optgroup>
+                            <optgroup label="Administración">
+                                <option value="Administrador">Administrador</option>
+                                <option value="Supervisor">Supervisor</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 transition shadow-md mt-2">
+                        Guardar Trabajador en el Sistema
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-t">
+                    <h3 class="text-xs font-bold text-gray-600 uppercase mb-2">Personal Registrado Actualmente:</h3>
+                    <div class="overflow-x-auto max-h-48 border rounded-lg">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-slate-200 sticky top-0">
+                                <tr>
+                                    <th class="p-2 border">Nombre</th>
+                                    <th class="p-2 border">Cargo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-lista-trabajadores">
+                                <tr><td colspan="2" class="p-2 text-center text-gray-500">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 5: HISTORIAL / REPORTES (PROTEGIDO) -->
+            <div id="seccionHistorial" class="space-y-3 hidden">
+                <h2 class="text-md font-bold text-slate-700 border-b pb-2">Consulta de Historial (Supervisor / Admin)</h2>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Seleccionar Módulo</label>
+                    <select id="historial-tabla" onchange="cargarHistorial()" class="w-full mt-1 p-2 border rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="visitas">Accesos (Visitas / Proveedores)</option>
+                        <option value="asistencia">Asistencia del Personal</option>
+                        <option value="paquetes">Paquetes Recibidos</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto max-h-96 border rounded-lg">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-200 sticky top-0">
+                            <tr>
+                                <th class="p-2 border">Fecha / Hora</th>
+                                <th class="p-2 border">Detalles</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-resultados">
+                            <tr>
+                                <td colspan="2" class="p-4 text-center text-gray-500">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Alerta visual de éxito -->
+            <div id="alertaExito" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-center text-xs">
+                ¡Operación guardada con éxito en la nube!
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE PIN -->
+    <div id="modalPin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl p-6 max-w-xs w-full shadow-xl space-y-4 text-center">
+            <h3 class="text-md font-bold text-slate-800">Área Restringida 🔒</h3>
+            <p class="text-xs text-gray-600">Ingrese el PIN de Supervisor / Administración (4 dígitos):</p>
+            <input type="password" id="inputPinAdmin" class="w-full p-2 text-center tracking-widest text-lg border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" maxlength="4">
+            <div class="flex gap-2">
+                <button type="button" onclick="cerrarModalPin()" class="flex-1 bg-gray-200 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-300 transition">Cancelar</button>
+                <button type="button" onclick="validarPinAdmin()" class="flex-1 bg-blue-600 text-white text-xs font-semibold py-2 rounded-lg hover:bg-blue-700 transition">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pie -->
+    <footer class="text-center p-4 text-xs text-slate-500">
+        RCasas Multi-Edificio &copy; 2026
+    </footer>
+
+    <!-- Lógica JavaScript -->
+    <script>
+        const SUPABASE_URL = 'https://cxracgytkfzxcyamqgws.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_kicJT7QIh7N-DU0OJxXrJw_05CKmV8D';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const PIN_ADMIN = "2901";
+        let sesionAdminActiva = false;
+        let tabPendienteDestino = '';
+
+        async function cargarDepartamentos() {
+            const { data, error } = await _supabase.from('Departamentos').select('numero');
+            const selectAccesos = document.getElementById('acc-destino');
+            const selectPaquetes = document.getElementById('paq-depto');
+
+            selectAccesos.innerHTML = '<option value="">Seleccione Departamento</option>';
+            selectPaquetes.innerHTML = '<option value="">Seleccione Departamento</option>';
+
+            if (error || !data || data.length === 0) return;
+
+            data.forEach(item => {
+                const opt1 = document.createElement('option');
+                opt1.value = item.numero;
+                opt1.textContent = `Depto ${item.numero}`;
+                selectAccesos.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = item.numero;
+                opt2.textContent = `Depto ${item.numero}`;
+                selectPaquetes.appendChild(opt2);
+            });
+        }
+
+        let listaPersonalCache = [];
+
+        async function cargarTrabajadores() {
+            const { data, error } = await _supabase.from('Trabajadores').select('*').order('nombre', { ascending: true });
+            
+            const selectAsis = document.getElementById('asis-trabajador-select');
+            const selectReceptor = document.getElementById('paq-receptor');
+            const selectEntrega = document.getElementById('paq-trabajador-entrega');
+            const tablaPersonal = document.getElementById('tabla-lista-trabajadores');
+
+            selectAsis.innerHTML = '<option value="">Seleccione trabajador</option>';
+            selectReceptor.innerHTML = '<option value="">Seleccione trabajador</option>';
+            selectEntrega.innerHTML = '<option value="">Seleccione trabajador</option>';
+            tablaPersonal.innerHTML = '';
+
+            if (error || !data || data.length === 0) {
+                selectAsis.innerHTML = '<option value="">No hay personal registrado</option>';
+                selectReceptor.innerHTML = '<option value="">No hay personal registrado</option>';
+                selectEntrega.innerHTML = '<option value="">No hay personal registrado</option>';
+                tablaPersonal.innerHTML = '<tr><td colspan="2" class="p-2 text-center text-gray-500">Sin trabajadores registrados.</td></tr>';
+                listaPersonalCache = [];
+                return;
+            }
+
+            listaPersonalCache = data;
+
+            data.forEach(item => {
+                // Para Asistencia
+                const opt1 = document.createElement('option');
+                opt1.value = item.documento;
+                opt1.textContent = `${item.nombre} (${item.cargo || 'Personal'})`;
+                selectAsis.appendChild(opt1);
+
+                // Para Paquetes Recepción
+                const opt2 = document.createElement('option');
+                opt2.value = item.nombre;
+                opt2.textContent = item.nombre;
+                selectReceptor.appendChild(opt2);
+
+                // Para Paquetes Entrega
+                const opt3 = document.createElement('option');
+                opt3.value = item.nombre;
+                opt3.textContent = item.nombre;
+                selectEntrega.appendChild(opt3);
+
+                // Para tabla en pestaña Personal
+                const tr = document.createElement('tr');
+                tr.className = "border-b";
+                tr.innerHTML = `<td class="p-2">${item.nombre}</td><td class="p-2">${item.cargo || 'N/D'}</td>`;
+                tablaPersonal.appendChild(tr);
+            });
+        }
+
+        function completarDatosAsistencia() {
+            const docSeleccionado = document.getElementById('asis-trabajador-select').value;
+            const inputDoc = document.getElementById('asis-documento');
+            const inputNombre = document.getElementById('asis-nombre');
+            const inputCargo = document.getElementById('asis-cargo');
+
+            if (!docSeleccionado) {
+                inputDoc.value = '';
+                inputNombre.value = '';
+                inputCargo.value = '';
+                return;
+            }
+
+            const persona = listaPersonalCache.find(p => p.documento === docSeleccionado);
+            if (persona) {
+                inputDoc.value = persona.documento;
+                inputNombre.value = persona.nombre;
+                inputCargo.value = persona.cargo || 'Personal';
+            }
+        }
+
+        window.onload = function() {
+            cargarDepartamentos();
+            cargarTrabajadores();
+        };
+
+        function cambiarTab(tab) {
+            if (tab === 'trabajadores' || tab === 'historial') {
+                if (!sesionAdminActiva) {
+                    tabPendienteDestino = tab;
+                    document.getElementById('modalPin').classList.remove('hidden');
+                    document.getElementById('inputPinAdmin').value = '';
+                    document.getElementById('inputPinAdmin').focus();
+                    return; 
+                }
+            }
+            mostrarVistaTab(tab);
+        }
+
+        function validarPinAdmin() {
+            const claveIngresada = document.getElementById('inputPinAdmin').value.trim();
+            if (claveIngresada === PIN_ADMIN) {
+                sesionAdminActiva = true;
+                document.getElementById('modalPin').classList.add('hidden');
+                mostrarVistaTab(tabPendienteDestino);
+            } else {
+                alert("PIN incorrecto. Acceso denegado.");
+                document.getElementById('inputPinAdmin').value = '';
+                document.getElementById('inputPinAdmin').focus();
+            }
+        }
+
+        function cerrarModalPin() {
+            document.getElementById('modalPin').classList.add('hidden');
+        }
+
+        function mostrarVistaTab(tab) {
+            document.getElementById('formAsistencia').classList.add('hidden');
+            document.getElementById('formAccesos').classList.add('hidden');
+            document.getElementById('formPaquetes').classList.add('hidden');
+            document.getElementById('seccionTrabajadores').classList.add('hidden');
+            document.getElementById('seccionHistorial').classList.add('hidden');
+            
+            document.getElementById('btn-asistencia').className = "flex-1 py-3 text-xs font-semibold text-gray-500 border-b-2 border-transparent transition";
+            document.getElementById('btn-accesos').className = "flex-1 py-3 text-xs font-semibold text-gray-500 border-b-2 border-transparent transition";
+            document.getElementById('btn-paquetes').className = "flex-1 py-3 text-xs font-semibold text-gray-500 border-b-2 border-transparent transition";
+            document.getElementById('btn-trabajadores').className = "flex-1 py-3 text-xs font-semibold text-gray-500 border-b-2 border-transparent transition";
+            document.getElementById('btn-historial').className = "flex-1 py-3 text-xs font-semibold text-gray-500 border-b-2 border-transparent transition";
+
+            if(tab === 'asistencia') {
+                document.getElementById('formAsistencia').classList.remove('hidden');
+                document.getElementById('btn-asistencia').className = "flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition";
+                document.getElementById('titulo-sistema').innerText = "RCasas - Asistencia";
+                cargarTrabajadores();
+            } else if(tab === 'accesos') {
+                document.getElementById('formAccesos').classList.remove('hidden');
+                document.getElementById('btn-accesos').className = "flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition";
+                document.getElementById('titulo-sistema').innerText = "RCasas - Accesos";
+            } else if(tab === 'paquetes') {
+                document.getElementById('formPaquetes').classList.remove('hidden');
+                document.getElementById('btn-paquetes').className = "flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition";
+                document.getElementById('titulo-sistema').innerText = "RCasas - Paquetes";
+                cargarTrabajadores();
+            } else if(tab === 'trabajadores') {
+                document.getElementById('seccionTrabajadores').classList.remove('hidden');
+                document.getElementById('btn-trabajadores').className = "flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition";
+                document.getElementById('titulo-sistema').innerText = "RCasas - Personal";
+                cargarTrabajadores();
+            } else if(tab === 'historial') {
+                document.getElementById('seccionHistorial').classList.remove('hidden');
+                document.getElementById('btn-historial').className = "flex-1 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600 transition";
+                document.getElementById('titulo-sistema').innerText = "RCasas - Historial";
+                cargarHistorial();
+            }
+        }
+
+        // REGISTRO DE NUEVO TRABAJADOR
+        async function registrarNuevoTrabajador(event) {
+            event.preventDefault();
+            const data = {
+                documento: document.getElementById('tr-documento').value.trim(),
+                nombre: document.getElementById('tr-nombre').value.trim(),
+                cargo: document.getElementById('tr-cargo').value
+            };
+
+            const { error } = await _supabase.from('Trabajadores').insert([data]);
+            if (error) {
+                alert("Error al guardar trabajador (quizá el DNI ya está registrado): " + error.message);
+                return;
+            }
+
+            mostrarAlerta();
+            document.getElementById('formNuevoTrabajador').reset();
+            cargarTrabajadores();
+        }
+
+        async function consultarAPITrabajador() {
+            const doc = document.getElementById('tr-documento').value.trim();
+            if (doc.length !== 8) {
+                alert("El DNI debe tener exactamente 8 dígitos.");
+                return;
+            }
+            try {
+                document.getElementById('tr-nombre').value = "Buscando...";
+                const response = await fetch('https://api.apiperu.dev/dni', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer 1ab915897351601ab9267d07c09450fe00958260b154459ff5e8e7e43d08d3e7' 
+                    },
+                    body: JSON.stringify({ dni: doc })
+                });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const persona = data.data;
+                    document.getElementById('tr-nombre').value = `${persona.nombres || ''} ${persona.apellido_paterno || ''} ${persona.apellido_materno || ''}`.trim();
+                } else {
+                    document.getElementById('tr-nombre').value = "";
+                    alert(data.message || "DNI no encontrado.");
+                }
+            } catch (err) {
+                document.getElementById('tr-nombre').value = "";
+                alert("Error al consultar API.");
+            }
+        }
+
+        function alternarModoAcceso() {
+            const accion = document.getElementById('acc-accion').value;
+            const subIngreso = document.getElementById('subFormIngreso');
+            const subSalida = document.getElementById('subFormSalida');
+
+            if (accion === 'INGRESO') {
+                subIngreso.classList.remove('hidden');
+                subSalida.classList.add('hidden');
+            } else {
+                subIngreso.classList.add('hidden');
+                subSalida.classList.remove('hidden');
+                cargarPersonasAdentro();
+            }
+        }
+
+        async function cargarPersonasAdentro() {
+            const select = document.getElementById('selectSalidaActiva');
+            select.innerHTML = '<option value="">Cargando personas en el edificio...</option>';
+
+            const { data, error } = await _supabase
+                .from('Visitas')
+                .select('*')
+                .eq('estado', 'activo');
+
+            if (error || !data || data.length === 0) {
+                select.innerHTML = '<option value="">No hay personas registradas dentro actualmente</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Seleccione a la persona que se retira...</option>';
+            data.forEach(item => {
+                select.innerHTML += `<option value="${item.id}">${item.nombre} (${item.tipo_persona || 'Visita'}) - Depto: ${item.destino}</option>`;
+            });
+        }
+
+        async function registrarIngresoAcceso(event) {
+            event.preventDefault();
+            const fechaPeru = new Date();
+            fechaPeru.setHours(fechaPeru.getHours() - 5);
+
+            const data = {
+                accion: 'INGRESO',
+                tipo_persona: document.getElementById('acc-tipoPersona').value,
+                documento: document.getElementById('acc-documento').value,
+                nombre: document.getElementById('acc-nombre').value,
+                destino: document.getElementById('acc-destino').value,
+                fecha: fechaPeru.toISOString(),
+                estado: 'activo'
+            };
+
+            const { error } = await _supabase.from('Visitas').insert([data]);
+            if(error) { alert("Error al guardar: " + error.message); return; }
+            mostrarAlerta();
+            document.getElementById('subFormIngreso').reset();
+            cargarDepartamentos();
+        }
+
+        async function registrarSalidaSeleccionada() {
+            const registroId = document.getElementById('selectSalidaActiva').value;
+            if (!registroId) { alert("Seleccione a una persona."); return; }
+
+            const fechaPeru = new Date();
+            fechaPeru.setHours(fechaPeru.getHours() - 5);
+
+            const { error } = await _supabase
+                .from('Visitas')
+                .update({ accion: 'SALIDA', estado: 'salido', fecha: fechaPeru.toISOString() })
+                .eq('id', registroId);
+
+            if (error) { alert("Error: " + error.message); return; }
+            mostrarAlerta();
+            cargarPersonasAdentro(); 
+        }
+
+        // PAQUETES
+        function alternarModoPaquete() {
+            const modo = document.getElementById('paq-accion-modo').value;
+            const subReg = document.getElementById('subFormRegPaquete');
+            const subEnt = document.getElementById('subFormEntregarPaquete');
+
+            if (modo === 'REGISTRO') {
+                subReg.classList.remove('hidden');
+                subEnt.classList.add('hidden');
+            } else {
+                subReg.classList.add('hidden');
+                subEnt.classList.remove('hidden');
+                cargarPaquetesPendientes();
+                cargarTrabajadores();
+            }
+        }
+
+        function verificarCourierOtro() {
+            const courier = document.getElementById('paq-courier').value;
+            const contenedorOtro = document.getElementById('contenedor-otro-courier');
+            const inputOtro = document.getElementById('paq-courier-otro');
+
+            if (courier === 'Otro') {
+                contenedorOtro.classList.remove('hidden');
+                inputOtro.required = true;
+            } else {
+                contenedorOtro.classList.add('hidden');
+                inputOtro.required = false;
+                inputOtro.value = '';
+            }
+        }
+
+        async function registrarPaquete(event) {
+            event.preventDefault();
+            let courierSeleccionado = document.getElementById('paq-courier').value;
+            if (courierSeleccionado === 'Otro') {
+                courierSeleccionado = document.getElementById('paq-courier-otro').value.trim();
+            }
+
+            const fechaPeru = new Date();
+            fechaPeru.setHours(fechaPeru.getHours() - 5);
+
+            const data = {
+                departamento: document.getElementById('paq-depto').value,
+                destinatario: document.getElementById('paq-destinatario').value,
+                repartidor: document.getElementById('paq-repartidor').value,
+                courier: courierSeleccionado,
+                descripcion: document.getElementById('paq-descripcion').value,
+                receptor: document.getElementById('paq-receptor').value,
+                fecha: fechaPeru.toISOString(),
+                estado: 'pendiente'
+            };
+
+            const { error } = await _supabase.from('Paquetes').insert([data]);
+            if(error) { alert("Error: " + error.message); return; }
+            
+            mostrarAlerta();
+            document.getElementById('subFormRegPaquete').reset();
+            verificarCourierOtro();
+            cargarDepartamentos();
+        }
+
+        async function cargarPaquetesPendientes() {
+            const select = document.getElementById('selectPaquetePendiente');
+            select.innerHTML = '<option value="">Cargando paquetes pendientes...</option>';
+
+            const { data, error } = await _supabase
+                .from('Paquetes')
+                .select('*')
+                .eq('estado', 'pendiente');
+
+            if (error || !data || data.length === 0) {
+                select.innerHTML = '<option value="">No hay paquetes pendientes</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">Seleccione el paquete a entregar...</option>';
+            data.forEach(item => {
+                select.innerHTML += `<option value="${item.id}">Depto ${item.departamento} - Para: ${item.destinatario} (${item.courier}: ${item.descripcion})</option>`;
+            });
+        }
+
+        async function entregarPaqueteSeleccionado() {
+            const paqueteId = document.getElementById('selectPaquetePendiente').value;
+            const trabajadorEntrega = document.getElementById('paq-trabajador-entrega').value;
+            const quienRetira = document.getElementById('paq-quien-retira').value.trim();
+
+            if (!paqueteId || !trabajadorEntrega || !quienRetira) {
+                alert("Por favor complete todos los campos de entrega.");
+                return;
+            }
+
+            const fechaPeru = new Date();
+            fechaPeru.setHours(fechaPeru.getHours() - 5);
+
+            const { error } = await _supabase
+                .from('Paquetes')
+                .update({ 
+                    estado: 'entregado',
+                    receptor: trabajadorEntrega,
+                    quien_retira: quienRetira,
+                    fecha_entrega: fechaPeru.toISOString()
+                })
+                .eq('id', paqueteId);
+
+            if (error) { alert("Error: " + error.message); return; }
+
+            mostrarAlerta();
+            document.getElementById('paq-quien-retira').value = '';
+            cargarPaquetesPendientes();
+        }
+
+        async function cargarHistorial() {
+            const valorSeleccionado = document.getElementById('historial-tabla').value;
+            const tablaSeleccionada = valorSeleccionado.charAt(0).toUpperCase() + valorSeleccionado.slice(1);
+        
+            const tbody = document.getElementById('historial-resultados');
+            tbody.innerHTML = `<tr><td colspan="2" class="p-4 text-center text-gray-500">Cargando registros...</td></tr>`;
+
+            const { data, error } = await _supabase
+                .from(tablaSeleccionada)
+                .select('*')
+                .order('fecha', { ascending: false })
+                .limit(50);
+
+            if (error || !data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="p-4 text-center text-gray-500">No hay registros guardados todavía.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-slate-50";
+
+                let fechaStr = "Fecha no registrada";
+                if(row.fecha) {
+                    fechaStr = new Date(row.fecha).toLocaleString();
+                }
+
+                let detalleHtml = "";
+                if(tablaSeleccionada === 'Visitas') {
+                    detalleHtml = `<b>${row.accion || ''}</b> - ${row.tipo_persona || ''}: <b>${row.nombre || ''}</b> (${row.documento || ''})<br><span class="text-gray-500">Destino: Depto ${row.destino || ''}</span>`;
+                } else if(tablaSeleccionada === 'Asistencia') {
+                    detalleHtml = `<b>${row.accion || ''}</b> - <b>${row.nombre || ''}</b> (${row.cargo || ''}, Turno ${row.turno || ''})<br><span class="text-gray-500">Doc: ${row.documento || ''}</span>`;
+                } else if(tablaSeleccionada === 'Paquetes') {
+                    let estadoTxt = row.estado === 'entregado' ? `<span class="text-emerald-600 font-bold">ENTREGADO</span> (Entregó: ${row.receptor || 'N/D'} | Retiró: ${row.quien_retira || 'N/D'})` : `<span class="text-amber-600 font-bold">PENDIENTE</span>`;
+                    detalleHtml = `Depto <b>${row.departamento || ''}</b> - Para: <b>${row.destinatario || ''}</b><br><span class="text-gray-500">Courier: ${row.courier || ''} (${row.descripcion || ''}) - Recibió: ${row.receptor || ''}</span><br>${estadoTxt}`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2 border align-top text-gray-600 whitespace-nowrap">${fechaStr}</td>
+                    <td class="p-2 border align-top">${detalleHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function consultarAPI(tipo) {
+            const inputId = tipo === 'asis' ? 'asis-documento' : 'acc-documento';
+            const nombreId = tipo === 'asis' ? 'asis-nombre' : 'acc-nombre';
+            const doc = document.getElementById(inputId).value.trim();
+
+            if (doc.length !== 8) { alert("El DNI debe tener 8 dígitos."); return; }
+
+            try {
+                document.getElementById(nombreId).value = "Buscando...";
+                const response = await fetch('https://api.apiperu.dev/dni', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer 1ab915897351601ab9267d07c09450fe00958260b154459ff5e8e7e43d08d3e7' 
+                    },
+                    body: JSON.stringify({ dni: doc })
+                });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const persona = data.data;
+                    document.getElementById(nombreId).value = `${persona.nombres || ''} ${persona.apellido_paterno || ''} ${persona.apellido_materno || ''}`.trim();
+                } else {
+                    document.getElementById(nombreId).value = "";
+                    alert("DNI no encontrado.");
+                }
+            } catch (error) {
+                document.getElementById(nombreId).value = "";
+                alert("Error al conectar con la API.");
+            }
+        }
+
+        function mostrarAlerta() {
+            const alerta = document.getElementById('alertaExito');
+            alerta.classList.remove('hidden');
+            setTimeout(() => alerta.classList.add('hidden'), 3000);
+        }
+
+        document.getElementById('formAsistencia').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fechaPeru = new Date();
+            fechaPeru.setHours(fechaPeru.getHours() - 5);
+
+            const data = {
+                accion: document.getElementById('asis-accion').value,
+                documento: document.getElementById('asis-documento').value,
+                nombre: document.getElementById('asis-nombre').value,
+                cargo: document.getElementById('asis-cargo').value,
+                turno: document.getElementById('asis-turno').value,
+                fecha: fechaPeru.toISOString()
+            };
+
+            const { error } = await _supabase.from('Asistencia').insert([data]);
+            if(error) { alert("Error: " + error.message); return; }
+            mostrarAlerta();
+            this.reset();
+            cargarTrabajadores();
+        });
+    </script>
+</body>
+</html>
